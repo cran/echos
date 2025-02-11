@@ -1,0 +1,88 @@
+---
+title: "Tidy functions"
+author: "Alexander Häußer"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tidy functions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.height = 5,
+  fig.width = 7
+)
+```
+
+## Load package
+
+```{r packages, message = FALSE, warning = FALSE}
+library(echos)
+library(tidyverse)
+library(tsibble)
+library(fable)
+```
+
+## Prepare dataset
+
+In this example, we will use the `m4_data`. The dataset is a monthly `tsibble`, which is filtered to include only the time series `"M21655"` and `"M2717"`. The resulting object `train_frame` contains the training data and is visualized below.
+
+```{r data , fig.alt = "Plot actual values"}
+train_frame <- m4_data %>%
+  filter(series %in% c("M21655", "M2717"))
+
+train_frame
+
+p <- ggplot()
+
+p <- p + geom_line(
+  data = train_frame,
+  aes(
+    x = index,
+    y = value),
+  linewidth = 0.5
+)
+
+p <- p + facet_wrap(
+  vars(series),
+  ncol = 1,
+  scales = "free")
+
+p
+```
+
+
+## Train ESN model
+
+The function `ESN()` is used in combination with `model()` from the `fabletools` package to train an Echo State Network for the variable `value`. The trained models are stored as a `mable` (i.e., *model table*). Additionally, an `ARIMA()` model is trained as benchmark.
+
+```{r mable_frame}
+mable_frame <- train_frame %>%
+  model(
+    "ESN" = ESN(value),
+    "ARIMA" = ARIMA(value)
+    )
+
+mable_frame
+```
+
+## Forecast ESN model
+
+Forecasts are generated via the function `forecast()`, where the forecast horizon is set to `h = 18` (i.e., 18-month ahead forecasts). The forecasts are stored as `fable` (i.e., *forecast table*) and visualized along the historic training data.
+
+```{r fable_frame, fig.alt = "Plot forecast and train data"}
+fable_frame <- mable_frame %>%
+  forecast(h = 18)
+
+fable_frame
+
+fable_frame %>%
+  autoplot(train_frame, level = NULL)
+```
+
+
+
+
