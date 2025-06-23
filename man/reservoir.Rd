@@ -7,7 +7,7 @@
 reservoir(object)
 }
 \arguments{
-\item{object}{An object of class \code{ESN}.}
+\item{object}{An object of class \code{mdl_df}, containing an ESN model.}
 }
 \value{
 A tibble containing the reservoir (internal states).

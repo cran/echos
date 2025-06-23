@@ -42,11 +42,12 @@ is.forecast_esn <- function(object) {
 
 
 
-#' @title Print specification of the trained ESN model
+#' @title Print model specification of the trained ESN model
 #' 
-#' @description Print specification of the trained ESN model.
+#' @description Provides a compact overview of the model specification in the 
+#'    format \code{ESN({n_states, alpha, rho}, {n_models, df})}.
 #'
-#' @param x An object of class \code{esn}.
+#' @param x An object of class \code{esn}. The result of a call to \code{train_esn()}.
 #' @param ... Currently not in use.
 #'
 #' @return Print specification of the trained ESN model.
@@ -68,7 +69,7 @@ print.esn <- function(x, ...) {
 #' 
 #' @description Provide a detailed summary of the trained ESN model.
 #'
-#' @param object An object of class \code{esn}.
+#' @param object An object of class \code{esn}. The result of a call to \code{train_esn()}.
 #' @param ... Currently not in use.
 #'
 #' @return Print detailed model summary.
@@ -140,14 +141,58 @@ summary.esn <- function(object, ...) {
 }
 
 
-
-#' @title Plot point forecasts and actuals of a trained ESN model.
+#' @title Plot internal states of a trained ESN model
 #' 
-#' @description Plot point forecasts and actuals of a trained ESN model as line
-#'   chart. Optionally, test data (out-of-sample) can be added to the plot.
+#' @description Plot internal states (i.e., the reservoir) of a trained ESN 
+#'   model as line chart.
 #'
-#' @param x An object of class \code{forecast_esn}.
+#' @param x An object of class \code{esn}. The result of a call to \code{train_esn()}.
+#' @param ... Further arguments passed to \code{matplot()}.
+#'
+#' @return Line chart of internal states.
+#' 
+#' @examples
+#' xdata <- as.numeric(AirPassengers)
+#' xmodel <- train_esn(y = xdata)
+#' plot(xmodel)
+#' 
+#' @export
+
+plot.esn <- function(x,
+                     ...) {
+  
+  if (!is.esn(x))
+    stop("x must be an object of class esn")
+  
+  # Extract reservoir and model specification from object
+  states_train <- x[["states_train"]]
+  model_spec <- x[["method"]][["model_spec"]]
+  
+  # Plot internal states as line chart
+  matplot(
+    states_train, 
+    type = "l",
+    col = "lightgrey",
+    lty = 1,
+    main = model_spec,
+    xlab = "Index",
+    ylab = "Value",
+    ...
+  )
+}
+
+
+#' @title Plot forecasts of a trained ESN model
+#' 
+#' @description Plot point forecasts and forecast intervals, actual values of a 
+#'   trained ESN model. Optionally, test data (out-of-sample) and fitted values
+#'   can be added to the plot.
+#'
+#' @param x An object of class \code{forecast_esn}. The result of a call to \code{forecast_esn()}.
 #' @param test Numeric vector. Test data, i.e., out-of-sample actual values.
+#' @param fitted Logical value. If \code{TRUE}, fitted values are added.
+#' @param interval Logical value. If \code{TRUE}, forecast intervals are added.
+#' @param n_obs Integer value. If \code{NULL}, all in-sample values are shown, otherwise only the last \code{n_obs}.
 #' @param ... Currently not in use.
 #'
 #' @return Line chart of point forecast and actual values.
@@ -162,50 +207,160 @@ summary.esn <- function(object, ...) {
 
 plot.forecast_esn <- function(x,
                               test = NULL,
+                              fitted = TRUE,
+                              interval = TRUE,
+                              n_obs = NULL,
                               ...) {
   
-  # Extract actual, point forecast and model specification
-  actual <- x[["actual"]]
-  point <- x[["point"]]
-  model_spec <- x[["model_spec"]]
+  # Extract data --------------------------------------------------------------
   
-  # Pad vectors with leading and trailing NAs to same length
-  xactual <- c(actual, rep(NA_real_, length(point)))
-  xpoint <- c(rep(NA_real_, length(actual)), point)
+  if (!is.forecast_esn(x))
+    stop("x must be an object of class forecast_esn")
   
+  model_spec <- x[["model_spec"]]   # Model specification
+  n_ahead <- x[["n_ahead"]]         # Forecast horizon
+  n_train  <- length(x[["actual"]]) # Number of in-sample data
+  
+  # Full index for in-sample (n_train) and out-of-sample (n_ahead)
+  index <- seq(
+    from = 1, 
+    to = (n_train + n_ahead),
+    by = 1
+  )
+  
+  # Filter index and overwrite n_train
+  if (!is.null(n_obs)) {
+    index <- tail(index, n = (n_obs + n_ahead))
+    n_train <- n_obs 
+  }
+  
+  # Prepare actual values -----------------------------------------------------
+  # Extract data and filter
+  xactual <- tail(x[["actual"]], n = n_train)
+  # Pad vector with trailing NAs to same length
+  xactual <- c(xactual, rep(NA_real_, n_ahead))
+  
+  # Prepare fitted values -----------------------------------------------------
+  if (fitted == TRUE) {
+    # Extract data and filter
+    xfitted <- tail(x[["fitted"]], n = n_train)
+    # Pad vector with trailing NAs to same length
+    xfitted <- c(xfitted, rep(NA_real_, n_ahead))
+  } else {
+    xfitted <- NULL
+  }
+  
+  # Prepare point forecasts ---------------------------------------------------
+  # Extract data
+  xpoint <- x[["point"]]
+  # Pad vector with leading NAs to same length
+  xpoint  <- c(rep(NA_real_, n_train), xpoint)
+  
+  # Prepare forecast intervals ------------------------------------------------
+  if (interval == TRUE) {
+    if (!is.null(x[["interval"]])) {
+      # Extract data
+      xinterval <- x[["interval"]]
+      # Pad matrix with leading NAs to same length
+      xinterval <- rbind(
+        matrix(
+          data = NA_real_,
+          nrow = n_train,
+          ncol = ncol(xinterval)),
+        xinterval)
+    } else {
+      xinterval <- NULL
+    }
+  }
+  
+  # Prepare test data ---------------------------------------------------------
   if (!is.null(test)) {
-    if (length(point) == length(test)) {
-      xtest <- c(rep(NA_real_, length(actual)), test)
+    if (n_ahead == length(test)) {
+      xtest <- c(rep(NA_real_, n_train), test)
     }
   } else {
     xtest <- NULL
   }
   
-  lower <- min(xactual, xpoint, xtest, na.rm = TRUE)
-  upper <- max(xactual, xpoint, xtest, na.rm = TRUE)
+  # Establish limits of y-axis
+  ymin <- min(xactual, xpoint, xtest, xfitted, xinterval, na.rm = TRUE)
+  ymax <- max(xactual, xpoint, xtest, xfitted, xinterval, na.rm = TRUE)
   
-  # Save the current par settings, then immediately ensure they get restored
-  old_par <- par(no.readonly = TRUE)
-  on.exit(par(old_par))
-  
+  # Create base plot ----------------------------------------------------------
   plot(
-    x = xactual,
+    x = index,
+    y = xactual,
     type = "l",
-    main = paste0("Forecast from ", model_spec),
-    ylim = c(lower, upper),
+    main = model_spec,
+    ylim = c(ymin, ymax),
     xlab = "Index",
     ylab = "Value"
   )
   
-  lines(
-    x = xtest, 
-    col = "black",
-    lwd = 1
-  )
+  # Add test data
+  if (!is.null(test)) {
+    # Add vertical dashed line for split into training and testing
+    abline(
+      v = index[n_train],
+      lty = 2,
+      lwd = 1
+    )
+    
+    # Add line for test data
+    lines(
+      x = index,
+      y = xtest, 
+      col = "black",
+      lwd = 1
+    )
+  }
   
+  # Add fitted values
+  if (fitted == TRUE) {
+    # Add line for fitted values
+    lines(
+      x = index,
+      y = xfitted, 
+      col = "steelblue",
+      lwd = 1
+    )
+  }
+  
+  # Add polygon for interval forecasts (if required/available)
+  if (!is.null(xinterval)) {
+    
+    # Extract levels and sort from large to small
+    levels <- x[["levels"]]
+    levels <- sort(levels, decreasing = TRUE)
+    # Number of levels
+    n_levels <- length(levels)
+    
+    base_cols <- colorRampPalette(c("#d4e3ff", "#7ea8ff"))(n_levels)
+    alphas <- seq(0.20, 0.45, length.out = n_levels)
+    
+    for (i in 1:n_levels) {
+      lower <- xinterval[, paste0("lower(", sprintf("%02d", levels[i]), ")")]
+      upper <- xinterval[, paste0("upper(", sprintf("%02d", levels[i]), ")")]
+      
+      shade_col <- adjustcolor(
+        base_cols[i], 
+        alpha.f = alphas[i]
+      )
+      
+      polygon(
+        x = c(index, rev(index)),
+        y = c(lower, rev(upper)),
+        col = shade_col,
+        border = NA
+      )
+    }
+  }
+  
+  # Add line for point forecasts
   lines(
-    x = xpoint, 
+    x = index,
+    y = xpoint, 
     col = "steelblue",
     lwd = 2
-    )
+  )
 }

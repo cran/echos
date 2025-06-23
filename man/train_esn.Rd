@@ -25,9 +25,9 @@ train_esn(
 \arguments{
 \item{y}{Numeric vector containing the response variable.}
 
-\item{lags}{Integer vectors with the lags associated with the input variable.}
+\item{lags}{Integer vector with the lag(s) associated with the input variable.}
 
-\item{inf_crit}{Character value. The information criterion used for variable selection \code{inf_crit = c("aic", "aicc", "bic")}.}
+\item{inf_crit}{Character value. The information criterion used for variable selection \code{inf_crit = c("aic", "aicc", "bic", "hqc")}.}
 
 \item{n_diff}{Integer vector. The nth-differences of the response variable.}
 
@@ -64,8 +64,9 @@ A \code{list} containing:
       }
 }
 \description{
-This function trains an Echo State Network (ESN) to a
-  univariate time series.
+Train an Echo State Network (ESN) to a univariate time series.
+   The function automatically manages data pre-processing, reservoir
+   generation (i.e., internal states) and model estimation and selection.
 }
 \examples{
 xdata <- as.numeric(AirPassengers)

@@ -28,17 +28,16 @@ xtest
 # Train ESN model
 xmodel <- train_esn(y = xtrain)
 
-# Plot actual and fitted values
-plot(xmodel$actual, type = "l")
-lines(xmodel$fitted, col = "steelblue", lwd = 2)
-
 # Summarize model
 summary(xmodel)
 
 ## ----forecast, fig.alt = "Plot forecast and test data"------------------------
 # Forecast ESN model
 xfcst <- forecast_esn(xmodel, n_ahead = n_ahead)
-xfcst
+
+# Extract point and interval forecasts
+xfcst$point
+xfcst$interval
 
 # Plot forecast and test data
 plot(xfcst, test = xtest)

@@ -20,8 +20,16 @@ A time series object of class \code{tsibble} with 1.152 rows and 4 columns:
 data(m4_data)
 }
 \description{
-Monthly tsibble with six exemplary time series from the M4 
-  Forecasting Competition.
+\code{tsibble} with six monthly time series from the M4 
+  Forecasting Competition. The datasets contains the following time series:
+  \itemize{
+     \item{M21655 (Demographic), 1995 Jan - 2015 Mar}
+     \item{M21683 (Demographic), 2000 Jan - 2023 Apr}
+     \item{M2717 (Macro), 1996 Jan - 2016 Nov}
+     \item{M28597 (Industry), 1996 Jan - 2016 Dec}
+     \item{M42529 (Finance), 2001 Jan - 2009 Apr}
+     \item{M4813 (Macro), 1994 Apr - 2006 May}
+  }
 }
 \examples{
 data(m4_data)

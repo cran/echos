@@ -1,12 +1,13 @@
 
 #' @title Train an Echo State Network
 #' 
-#' @description This function trains an Echo State Network (ESN) to a
-#'   univariate time series.
+#' @description Train an Echo State Network (ESN) to a univariate time series.
+#'    The function automatically manages data pre-processing, reservoir
+#'    generation (i.e., internal states) and model estimation and selection.
 #' 
 #' @param y Numeric vector containing the response variable.
-#' @param lags Integer vectors with the lags associated with the input variable.
-#' @param inf_crit Character value. The information criterion used for variable selection \code{inf_crit = c("aic", "aicc", "bic")}.
+#' @param lags Integer vector with the lag(s) associated with the input variable.
+#' @param inf_crit Character value. The information criterion used for variable selection \code{inf_crit = c("aic", "aicc", "bic", "hqc")}.
 #' @param n_diff Integer vector. The nth-differences of the response variable.
 #' @param n_models Integer value. The maximum number of (random) models to train for model selection.
 #' @param n_states Integer value. The number of internal states per reservoir.
@@ -57,11 +58,11 @@ train_esn <- function(y,
   if (is.vector(y) & is.numeric(y)) {
     n_outputs <- 1
   } else {
-    abort("train_esn() requires a numeric vector as input.")
+    stop("train_esn() requires a numeric vector as input.")
   }
   
   if(any(is.na(y))){
-    abort("train_esn() does not support missing values.")
+    stop("train_esn() does not support missing values.")
   }
   
   # Number of observations
@@ -78,12 +79,13 @@ train_esn <- function(y,
   # Number of initial observations to drop
   n_initial <- floor(n_total * 0.05)
   
+  # Number of differences required to achieve stationarity
   if (is.null(n_diff)) {
-    n_diff <- ndiffs(y)
-    if (n_diff > 1) {
-      n_diff <- 1
-    }
+    n_diff <- estimate_ndiff(y)
   }
+  
+  # Set seed for reproducibility
+  set.seed(n_seed)
   
   # Train model ===============================================================
   
@@ -126,9 +128,6 @@ train_esn <- function(y,
   
   # Create hidden layer (reservoir) ===========================================
   
-  # Set seed for random draws
-  set.seed(n_seed)
-  
   # Create random weight matrices for the input variables
   win <- create_win(
     n_inputs = n_inputs,
@@ -136,13 +135,12 @@ train_esn <- function(y,
     scale_runif = c(-scale_win, scale_win)
   )
   
-  # Create random weight matrix for each reservoir
+  # Create random weight matrix
   wres <- create_wres(
     n_states = n_states,
     rho = rho,
     density = density,
-    scale_runif = c(-scale_wres, scale_wres),
-    symmetric = FALSE
+    scale_runif = c(-scale_wres, scale_wres)
   )
   
   # Run reservoirs (create internal states)
@@ -172,25 +170,28 @@ train_esn <- function(y,
   Xt <- Xt[((n_initial + 1):nrow(Xt)), , drop = FALSE]
   yt <- y[((n_initial + 1 + (n_total - n_train)):n_total), , drop = FALSE]
   
-  set.seed(n_seed)
-  
   lambdas <- runif(
     n = n_models,
     min = lambda[1],
     max = lambda[2]
   )
   
-  # Estimate models
-  model_object <- map(
-    .x = seq_len(n_models),
-    .f = ~{
-      fit_ridge(
-        x = Xt,
-        y = yt,
-        lambda = lambdas[.x]
-      )
-    }
-  )
+  # Pre-allocate an empty list to store fitted models and model metrics
+  model_object <- vector("list", n_models)
+  model_metrics <- vector("list", n_models)
+  
+  for (i in seq_len(n_models)) {
+    # Estimate models
+    model_fit <- fit_ridge(
+      x = Xt,
+      y = yt,
+      lambda = lambdas[i]
+    )
+    # Store model object
+    model_object[[i]] <- model_fit
+    # Store model metrics
+    model_metrics[[i]] <- model_fit[["metrics"]]
+  }
   
   model_names <- paste_names(
     x = "model",
@@ -199,18 +200,19 @@ train_esn <- function(y,
   
   names(model_object) <- model_names
   
-  # Extract model metrics
-  model_metrics <- map_dfr(
-    .x = seq_len(n_models),
-    .f = ~{model_object[[.x]][["metrics"]]}
-  )
+  # Row-bind into a single data frame
+  model_metrics <- do.call(rbind, model_metrics)
   
   # Order model metrics by information criterion
   model_metrics <- model_metrics %>%
     mutate(
       model = model_names,
-      .before = .data$loglik) %>%
+      .before = "loglik") %>%
     arrange(!!sym(inf_crit))
+  
+  # Alternative base R code
+  # model_metrics <- cbind(model = model_names, model_metrics)
+  # model_metrics <- model_metrics[ order(model_metrics[[inf_crit]]) , ]
   
   # Identify best model, lambda and degrees of freedom (extract first row)
   model_best <- model_metrics[["model"]][1]
@@ -229,6 +231,9 @@ train_esn <- function(y,
   # Adjust actual values for correct dimension
   actual <- yy[index_train]
   
+  # Calculate differenced and scaled residuals
+  yr <- yt - fitted
+  
   # Rescale fitted values
   fitted <- rescale_vec(
     ys = fitted,
@@ -239,7 +244,7 @@ train_esn <- function(y,
   # Inverse difference fitted values
   if (n_diff > 0) {fitted <- yy[(index_train-1)] + fitted}
   
-  # Calculate residuals
+  # Calculate final residuals (rescaled and inverse differenced)
   resid <- actual - fitted
   
   # Fill NAs in front of vectors (adjust to length of original data)
@@ -252,7 +257,8 @@ train_esn <- function(y,
   # Store model data for forecasting
   model_data <- list(
     yt = yt,
-    yy = yy
+    yy = yy,
+    yr = yr
   )
   
   # List with model inputs and settings
@@ -285,15 +291,15 @@ train_esn <- function(y,
   # Create model specification (short summary)
   model_spec <- paste0(
     "ESN", "(",
-      "{",
-        n_total, ", ", 
-        n_states, ", ", 
-        n_models, 
-      "}, ",
-      "{",
-        round(df, 2), ", ",
-        round(lambda, 4),
-      "}",
+    "{",
+    n_states, ", ",
+    round(alpha, 2), ", ", 
+    round(rho, 2), 
+    "}, ",
+    "{",
+    n_models, ", ",
+    round(df, 2),
+    "}",
     ")")
   
   # Store results
