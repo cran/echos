@@ -10,16 +10,18 @@ knitr::opts_chunk$set(
 library(echos)
 
 ## ----data---------------------------------------------------------------------
+# Convert 'AirPassengers' dataset from ts to numeric vector
+xdata <- as.numeric(AirPassengers)
 # Forecast horizon
 n_ahead <- 12
 # Number of observations (total)
-n_obs <- length(AirPassengers)
+n_obs <- length(xdata)
 # Number of observations (training data)
 n_train <- n_obs - n_ahead
 
-# Prepare train and test data as numeric vectors
-xtrain <- AirPassengers[(1:n_train)]
-xtest <- AirPassengers[((n_train+1):n_obs)]
+# Prepare train and test data
+xtrain <- xdata[(1:n_train)]
+xtest <- xdata[((n_train+1):n_obs)]
 
 xtrain
 xtest
@@ -41,4 +43,19 @@ xfcst$interval
 
 # Plot forecast and test data
 plot(xfcst, test = xtest)
+
+## ----tuning, fig.alt = "Time series cross-validation"-------------------------
+# Tune hyperparameters via time series cross-validation
+xfit <- tune_esn(
+  y = xdata,
+  n_ahead = 12,
+  n_split = 5,
+  alpha = seq(0.1, 1.0, 0.1),
+  rho   = c(1.0),
+  tau   = c(0.4)
+)
+
+# Summarize and visualize optimal hyperparameter configuration
+summary(xfit)
+plot(xfit)
 

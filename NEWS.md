@@ -1,3 +1,17 @@
+# echos 1.0.3
+
+## New features
+* Added reservoir scaling parameter `tau` to `train_esn()`, enabling dynamic control of reservoir size.
+* Added `tune_esn()` to tune hyperparameters `alpha`, `rho` and `tau` via time series cross-validation (i.e., rolling forecasts).
+* Added S3 methods `summary.tune_esn()` and `plot.tune_esn()` to summarize and visualize results from hyperparameter tuning.
+
+## Bug fixes
+* Fixed `train_esn()` so `n_initial` is only auto-set when `NULL`.
+
+## Improvements
+* Added input validation for `y` and `inf_crit` in `train_esn()` and `levels` in `forecast_esn()`.
+* Improved documentation
+
 # echos 1.0.2
 
 ## New features

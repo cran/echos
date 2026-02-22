@@ -19,7 +19,7 @@
 
 \item{new_data}{Forecast horizon (n-step ahead forecast).}
 
-\item{normal}{Logical value. If \code{TRUE}, dist_normal() is used, otherwise dist_sample().}
+\item{normal}{Logical value. If \code{TRUE}, \code{dist_normal()} is used, otherwise \code{dist_sample()}.}
 
 \item{n_sim}{Integer value. The number of future sample path generated during simulation.}
 
@@ -49,3 +49,16 @@ model("ESN" = ESN(value)) \%>\%
 forecast(h = 18)
 
 }
+\seealso{
+Other tidy functions: 
+\code{\link{ESN}()},
+\code{\link{filter_esn}()},
+\code{\link{fitted.ESN}()},
+\code{\link{glance.ESN}()},
+\code{\link{model_sum.ESN}()},
+\code{\link{report.ESN}()},
+\code{\link{reservoir}()},
+\code{\link{residuals.ESN}()},
+\code{\link{tidy.ESN}()}
+}
+\concept{tidy functions}

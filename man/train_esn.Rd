@@ -15,6 +15,7 @@ train_esn(
   n_seed = 42,
   alpha = 1,
   rho = 1,
+  tau = 0.4,
   density = 0.5,
   lambda = c(1e-04, 2),
   scale_win = 0.5,
@@ -23,35 +24,37 @@ train_esn(
 )
 }
 \arguments{
-\item{y}{Numeric vector containing the response variable.}
+\item{y}{Numeric vector containing the response variable (no missing values).}
 
 \item{lags}{Integer vector with the lag(s) associated with the input variable.}
 
-\item{inf_crit}{Character value. The information criterion used for variable selection \code{inf_crit = c("aic", "aicc", "bic", "hqc")}.}
+\item{inf_crit}{Character value. Information criterion used for model selection among the \code{n_models} candidate ridge fits (different random \code{lambda} values). The candidate with the smallest criterion value is selected. One of \code{c("aic", "aicc", "bic", "hqc")}.}
 
-\item{n_diff}{Integer vector. The nth-differences of the response variable.}
+\item{n_diff}{Integer value. The nth-differences of the response variable. If \code{n_diff = NULL}, the number of differences required to achieve stationarity is determined automatically via a KPSS-test.}
 
-\item{n_states}{Integer value. The number of internal states per reservoir.}
+\item{n_states}{Integer value. The number of internal states of the reservoir. If \code{n_states = NULL}, the reservoir size is determined by \code{min(floor(n_total * tau), 200)}, where \code{n_total} is the time series length.}
 
-\item{n_models}{Integer value. The maximum number of (random) models to train for model selection.}
+\item{n_models}{Integer value. The maximum number of (random) models to train for model selection. If \code{n_models = NULL}, the number of models is defined as \code{n_states*2}.}
 
-\item{n_initial}{Integer value. The number of observations of internal states for initial drop out (throw-off).}
+\item{n_initial}{Integer value. The number of observations of internal states for initial drop out (throw-off). If \code{n_initial = NULL}, the throw-off is defined as \code{n_total*0.05}, where \code{n_total} is the time series length.}
 
 \item{n_seed}{Integer value. The seed for the random number generator (for reproducibility).}
 
-\item{alpha}{Numeric value. The leakage rate (smoothing parameter) applied to the reservoir.}
+\item{alpha}{Numeric value. The leakage rate (smoothing parameter) applied to the reservoir (value greater than 0 and less than or equal to 1).}
 
-\item{rho}{Numeric value. The spectral radius for scaling the reservoir weight matrix.}
+\item{rho}{Numeric value. The spectral radius for scaling the reservoir weight matrix (value often between 0 and 1, but values above 1 are possible).}
 
-\item{density}{Numeric value. The connectivity of the reservoir weight matrix (dense or sparse).}
+\item{tau}{Numeric value. The reservoir scaling parameter to determine the reservoir size based on the time series length (value greater than 0 and less than or equal to 1).}
 
-\item{lambda}{Numeric vector. Lower and upper bound of lambda sequence for ridge regression.}
+\item{density}{Numeric value. The connectivity of the reservoir weight matrix (dense or sparse) (value greater than 0 and less than or equal to 1).}
 
-\item{scale_win}{Numeric value. The lower and upper bound of the uniform distribution for scaling the input weight matrix.}
+\item{lambda}{Numeric vector. Lower and upper bound of lambda range for ridge regression (numeric vector of length 2 with both values greater than 0 and \code{lambda[1]} < \code{lambda[2]}).}
 
-\item{scale_wres}{Numeric value. The lower and upper bound of the uniform distribution for scaling the reservoir weight matrix.}
+\item{scale_win}{Numeric value. The lower and upper bound of the uniform distribution for scaling the input weight matrix (value greater than 0, weights are sampled from U(-\code{scale_win}, \code{scale_win})).}
 
-\item{scale_inputs}{Numeric vector. The lower and upper bound for scaling the time series data.}
+\item{scale_wres}{Numeric value. The lower and upper bound of the uniform distribution for scaling the reservoir weight matrix (value greater than 0, weights are sampled from U(-\code{scale_wres}, \code{scale_wres}) before applying \code{rho} and \code{density}).}
+
+\item{scale_inputs}{Numeric vector. The lower and upper bound for scaling the time series data (numeric vector of length 2 with \code{scale_inputs[1]} < \code{scale_inputs[2]}, often symmetric, e.g., \code{c(-0.5, 0.5)} or \code{c(-1, 1)}).}
 }
 \value{
 A \code{list} containing:
@@ -72,4 +75,29 @@ Train an Echo State Network (ESN) to a univariate time series.
 xdata <- as.numeric(AirPassengers)
 xmodel <- train_esn(y = xdata)
 summary(xmodel)
+
 }
+\references{
+\itemize{
+      \item{Häußer, A. (2026). Echo State Networks for Time Series Forecasting: Hyperparameter Sweep and Benchmarking. arXiv preprint arXiv:2602.03912, 2026. \url{https://arxiv.org/abs/2602.03912}}
+      \item{Jaeger, H. (2001). The “echo state” approach to analysing and training recurrent neural networks with an erratum note. Bonn, Germany: German National Research Center for Information Technology GMD Technical Report, 148(34):13.}
+      \item{Jaeger, H. (2002). Tutorial on training recurrent neural networks, covering BPPT, RTRL, EKF and the "echo state network" approach.}
+      \item{Lukosevicius, M. (2012). A practical guide to applying echo state networks. In Neural Networks: Tricks of the Trade: Second Edition, pages 659–686. Springer.}
+      \item{Lukosevicius, M. and Jaeger, H. (2009). Reservoir computing approaches to recurrent neural network training. Computer Science Review, 3(3):127–149.}
+   }
+}
+\seealso{
+Other base functions: 
+\code{\link{forecast_esn}()},
+\code{\link{is.esn}()},
+\code{\link{is.forecast_esn}()},
+\code{\link{is.tune_esn}()},
+\code{\link{plot.esn}()},
+\code{\link{plot.forecast_esn}()},
+\code{\link{plot.tune_esn}()},
+\code{\link{print.esn}()},
+\code{\link{summary.esn}()},
+\code{\link{summary.tune_esn}()},
+\code{\link{tune_esn}()}
+}
+\concept{base functions}

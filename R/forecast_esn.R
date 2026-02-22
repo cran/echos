@@ -8,8 +8,8 @@
 #' 
 #' @param object An object of class \code{esn}. The result of a call to \code{train_esn()}.
 #' @param n_ahead Integer value. The number of periods for forecasting (i.e. forecast horizon).
-#' @param levels Integer vector. The levels of the forecast intervals, e.g., 80\% and 95\%.
-#' @param n_sim Integer value. The number of future sample path generated during simulation.
+#' @param levels Numeric vector. The levels of the forecast intervals (in percent), e.g., \code{c(80, 95)}. Values must lie between 0 and 100.
+#' @param n_sim Integer value. The number of simulated future paths used to compute forecast intervals via a moving block bootstrap of the (demeaned) in-sample residuals. If \code{NULL}, no intervals are computed.
 #' @param n_seed Integer value. The seed for the random number generator (for reproducibility).
 #' 
 #' @return A \code{list} containing:
@@ -17,17 +17,31 @@
 #'       \item{\code{point}: Numeric vector containing the point forecasts.}
 #'       \item{\code{interval}: Numeric matrix containing the forecast intervals.}
 #'       \item{\code{sim}: Numeric matrix containing the simulated future sample path.}
+#'       \item{\code{std}: Numeric vector with standard deviations.}
 #'       \item{\code{levels}: Integer vector. The levels of the forecast intervals.}
 #'       \item{\code{actual}: Numeric vector containing the actual values.}
 #'       \item{\code{fitted}: Numeric vector containing the fitted values.}
 #'       \item{\code{n_ahead}: Integer value. The number of periods for forecasting (forecast horizon).}
 #'       \item{\code{model_spec}: Character value. The model specification as string.}
 #'       }
+#' 
+#' @family base functions
+#' 
+#' @references 
+#'    \itemize{
+#'       \item{Häußer, A. (2026). Echo State Networks for Time Series Forecasting: Hyperparameter Sweep and Benchmarking. arXiv preprint arXiv:2602.03912, 2026. \url{https://arxiv.org/abs/2602.03912}}
+#'       \item{Jaeger, H. (2001). The “echo state” approach to analysing and training recurrent neural networks with an erratum note. Bonn, Germany: German National Research Center for Information Technology GMD Technical Report, 148(34):13.}
+#'       \item{Jaeger, H. (2002). Tutorial on training recurrent neural networks, covering BPPT, RTRL, EKF and the "echo state network" approach.}
+#'       \item{Lukosevicius, M. (2012). A practical guide to applying echo state networks. In Neural Networks: Tricks of the Trade: Second Edition, pages 659–686. Springer.}
+#'       \item{Lukosevicius, M. and Jaeger, H. (2009). Reservoir computing approaches to recurrent neural network training. Computer Science Review, 3(3):127–149.}
+#'    }
+#' 
 #' @examples
 #' xdata <- as.numeric(AirPassengers)
 #' xmodel <- train_esn(y = xdata)
 #' xfcst <- forecast_esn(xmodel, n_ahead = 12)
 #' plot(xfcst)
+#' 
 #' @export
 
 forecast_esn <- function(object,
@@ -36,10 +50,17 @@ forecast_esn <- function(object,
                          n_sim = 100,
                          n_seed = 42) {
   
-  # Pre-processing ============================================================
+  # Argument handling =========================================================
   
-  if (!is.esn(object))
-    stop("object must be an object of class esn")
+  if(!is.esn(object)){
+    stop("object must be an object of class esn.")
+  }
+  
+  if (!all(levels > 0 & levels < 100)) {
+    stop("levels must contain values strictly between 0 and 100.")
+  }
+  
+  # Pre-processing ============================================================
   
   method <- object$method
   
@@ -177,7 +198,8 @@ forecast_esn <- function(object,
     }
     
     # Convert central levels to lower/upper quantile probabilities
-    probs <- sort(unique(c(0.5 - levels / 200, 0.5 + levels / 200)))
+    levels <- sort(unique(levels))
+    probs <- c(0.5 - levels/200, 0.5 + levels/200)
     
     # Estimate quantiles row-wise
     interval <- t(apply(sim, 1, quantile, probs = probs, na.rm = TRUE))
@@ -294,7 +316,6 @@ predict_esn <- function(win,
       i <- min(which(is.na(inputs[, j])))
       inputs[i, j] <- mu
     }
-    
   }
   
   return(fcst)

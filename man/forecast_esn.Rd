@@ -17,9 +17,9 @@ forecast_esn(
 
 \item{n_ahead}{Integer value. The number of periods for forecasting (i.e. forecast horizon).}
 
-\item{levels}{Integer vector. The levels of the forecast intervals, e.g., 80\% and 95\%.}
+\item{levels}{Numeric vector. The levels of the forecast intervals (in percent), e.g., \code{c(80, 95)}. Values must lie between 0 and 100.}
 
-\item{n_sim}{Integer value. The number of future sample path generated during simulation.}
+\item{n_sim}{Integer value. The number of simulated future paths used to compute forecast intervals via a moving block bootstrap of the (demeaned) in-sample residuals. If \code{NULL}, no intervals are computed.}
 
 \item{n_seed}{Integer value. The seed for the random number generator (for reproducibility).}
 }
@@ -29,6 +29,7 @@ A \code{list} containing:
       \item{\code{point}: Numeric vector containing the point forecasts.}
       \item{\code{interval}: Numeric matrix containing the forecast intervals.}
       \item{\code{sim}: Numeric matrix containing the simulated future sample path.}
+      \item{\code{std}: Numeric vector with standard deviations.}
       \item{\code{levels}: Integer vector. The levels of the forecast intervals.}
       \item{\code{actual}: Numeric vector containing the actual values.}
       \item{\code{fitted}: Numeric vector containing the fitted values.}
@@ -47,4 +48,29 @@ xdata <- as.numeric(AirPassengers)
 xmodel <- train_esn(y = xdata)
 xfcst <- forecast_esn(xmodel, n_ahead = 12)
 plot(xfcst)
+
 }
+\references{
+\itemize{
+      \item{Häußer, A. (2026). Echo State Networks for Time Series Forecasting: Hyperparameter Sweep and Benchmarking. arXiv preprint arXiv:2602.03912, 2026. \url{https://arxiv.org/abs/2602.03912}}
+      \item{Jaeger, H. (2001). The “echo state” approach to analysing and training recurrent neural networks with an erratum note. Bonn, Germany: German National Research Center for Information Technology GMD Technical Report, 148(34):13.}
+      \item{Jaeger, H. (2002). Tutorial on training recurrent neural networks, covering BPPT, RTRL, EKF and the "echo state network" approach.}
+      \item{Lukosevicius, M. (2012). A practical guide to applying echo state networks. In Neural Networks: Tricks of the Trade: Second Edition, pages 659–686. Springer.}
+      \item{Lukosevicius, M. and Jaeger, H. (2009). Reservoir computing approaches to recurrent neural network training. Computer Science Review, 3(3):127–149.}
+   }
+}
+\seealso{
+Other base functions: 
+\code{\link{is.esn}()},
+\code{\link{is.forecast_esn}()},
+\code{\link{is.tune_esn}()},
+\code{\link{plot.esn}()},
+\code{\link{plot.forecast_esn}()},
+\code{\link{plot.tune_esn}()},
+\code{\link{print.esn}()},
+\code{\link{summary.esn}()},
+\code{\link{summary.tune_esn}()},
+\code{\link{train_esn}()},
+\code{\link{tune_esn}()}
+}
+\concept{base functions}

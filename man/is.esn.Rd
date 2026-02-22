@@ -10,10 +10,10 @@ is.esn(object)
 \item{object}{object to be tested.}
 }
 \value{
-Logical value. If \code{TRUE}, the object is of class "esn".
+Logical value. If \code{TRUE}, the object is of class \code{esn}.
 }
 \description{
-Returns \code{TRUE} if the object is of class "esn".
+Returns \code{TRUE} if the object is of class \code{esn}.
 }
 \examples{
 xdata <- as.numeric(AirPassengers)
@@ -21,3 +21,18 @@ xmodel <- train_esn(y = xdata)
 is.esn(xmodel)
 
 }
+\seealso{
+Other base functions: 
+\code{\link{forecast_esn}()},
+\code{\link{is.forecast_esn}()},
+\code{\link{is.tune_esn}()},
+\code{\link{plot.esn}()},
+\code{\link{plot.forecast_esn}()},
+\code{\link{plot.tune_esn}()},
+\code{\link{print.esn}()},
+\code{\link{summary.esn}()},
+\code{\link{summary.tune_esn}()},
+\code{\link{train_esn}()},
+\code{\link{tune_esn}()}
+}
+\concept{base functions}

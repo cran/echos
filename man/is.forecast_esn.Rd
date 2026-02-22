@@ -10,10 +10,10 @@ is.forecast_esn(object)
 \item{object}{object to be tested.}
 }
 \value{
-Logical value. If \code{TRUE}, the object is of class "forecast_esn".
+Logical value. If \code{TRUE}, the object is of class \code{forecast_esn}.
 }
 \description{
-Returns \code{TRUE} if the object is of class "forecast_esn".
+Returns \code{TRUE} if the object is of class \code{forecast_esn}.
 }
 \examples{
 xdata <- as.numeric(AirPassengers)
@@ -22,3 +22,18 @@ xfcst <- forecast_esn(xmodel, n_ahead = 12)
 is.forecast_esn(xfcst)
 
 }
+\seealso{
+Other base functions: 
+\code{\link{forecast_esn}()},
+\code{\link{is.esn}()},
+\code{\link{is.tune_esn}()},
+\code{\link{plot.esn}()},
+\code{\link{plot.forecast_esn}()},
+\code{\link{plot.tune_esn}()},
+\code{\link{print.esn}()},
+\code{\link{summary.esn}()},
+\code{\link{summary.tune_esn}()},
+\code{\link{train_esn}()},
+\code{\link{tune_esn}()}
+}
+\concept{base functions}

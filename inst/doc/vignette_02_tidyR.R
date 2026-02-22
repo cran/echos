@@ -12,7 +12,7 @@ library(tidyverse)
 library(tsibble)
 library(fable)
 
-## ----data , fig.alt = "Plot actual values"------------------------------------
+## ----data, fig.alt = "Plot actual values"-------------------------------------
 train_frame <- m4_data %>%
   filter(series %in% c("M21655", "M2717"))
 
